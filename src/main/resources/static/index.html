@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Escolar</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f0f2f5; color: #333; }
+
+        /* NAV */
+        nav { background: #2c3e50; color: white; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; }
+        nav h1 { font-size: 18px; }
+        #nav-user { font-size: 13px; color: #aaa; }
+        #btn-logout { background: #e74c3c; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; display: none; }
+
+        /* TABS */
+        #tabs { background: white; border-bottom: 1px solid #ddd; display: none; }
+        #tabs button { padding: 12px 20px; border: none; background: none; cursor: pointer; font-size: 14px; color: #666; border-bottom: 3px solid transparent; }
+        #tabs button.active { color: #2c3e50; border-bottom-color: #2c3e50; font-weight: bold; }
+
+        /* SECTIONS */
+        .section { display: none; padding: 24px; max-width: 900px; margin: 0 auto; }
+        .section.active { display: block; }
+
+        /* LOGIN */
+        #login-section { display: flex; justify-content: center; align-items: center; min-height: 80vh; }
+        .login-box { background: white; padding: 32px; border-radius: 8px; width: 340px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .login-box h2 { margin-bottom: 20px; text-align: center; color: #2c3e50; }
+
+        /* FORMS */
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 13px; margin-bottom: 4px; color: #555; }
+        .form-group input, .form-group select { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        .btn { padding: 8px 18px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .btn-primary { background: #2c3e50; color: white; width: 100%; padding: 10px; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-danger  { background: #e74c3c; color: white; }
+        .btn-warning { background: #f39c12; color: white; }
+
+        /* TABLE */
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        th { background: #2c3e50; color: white; padding: 10px 14px; text-align: left; font-size: 13px; }
+        td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f9f9f9; }
+
+        /* CARD */
+        .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .card h3 { margin-bottom: 16px; color: #2c3e50; font-size: 15px; }
+        .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+        .form-row .form-group { flex: 1; min-width: 160px; }
+
+        /* ALERTS */
+        .alert { padding: 10px 14px; border-radius: 4px; margin-bottom: 14px; font-size: 13px; display: none; }
+        .alert-success { background: #d4edda; color: #155724; }
+        .alert-error   { background: #f8d7da; color: #721c24; }
+
+        /* ACTIONS */
+        .actions { display: flex; gap: 6px; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .role-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #2c3e50; color: white; margin-left: 8px; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <h1>Control Escolar</h1>
+    <div style="display:flex;align-items:center;gap:12px">
+        <span id="nav-user"></span>
+        <button id="btn-logout" onclick="logout()">Cerrar sesión</button>
+    </div>
+</nav>
+
+<div id="tabs">
+    <button class="active" onclick="showTab('alumnos')">Alumnos</button>
+    <button onclick="showTab('maestros')">Maestros</button>
+    <button onclick="showTab('materias')">Materias</button>
+    <button onclick="showTab('calificaciones')">Calificaciones</button>
+</div>
+
+<!-- LOGIN -->
+<div id="login-section" class="section active">
+    <div class="login-box">
+        <h2>Control Escolar</h2>
+        <div id="login-alert" class="alert alert-error">Usuario o contraseña incorrectos</div>
+        <div class="form-group">
+            <label>Usuario</label>
+            <input type="text" id="login-username" placeholder="usuario">
+        </div>
+        <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" id="login-password" placeholder="contraseña">
+        </div>
+        <button class="btn btn-primary" onclick="login()">Iniciar sesión</button>
+    </div>
+</div>
+
+<!-- ALUMNOS -->
+<div id="alumnos-section" class="section">
+    <div id="alumnos-alert" class="alert"></div>
+    <div id="form-alumno-card" class="card" style="display:none">
+        <h3 id="form-alumno-title">Nuevo Alumno</h3>
+        <div class="form-row">
+            <div class="form-group"><label>Nombre</label><input type="text" id="alumno-nombre"></div>
+            <div class="form-group"><label>Apellido</label><input type="text" id="alumno-apellido"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>Matrícula</label><input type="text" id="alumno-matricula"></div>
+            <div class="form-group"><label>Email</label><input type="email" id="alumno-email"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn btn-success" onclick="guardarAlumno()">Guardar</button>
+            <button class="btn" style="background:#ddd" onclick="cancelarAlumno()">Cancelar</button>
+        </div>
+    </div>
+    <div class="section-header">
+        <h2>Alumnos</h2>
+        <button id="btn-nuevo-alumno" class="btn btn-success" onclick="mostrarFormAlumno()">+ Nuevo</button>
+    </div>
+    <table>
+        <thead><tr><th>ID</th><th>Nombre</th><th>Apellido</th><th>Matrícula</th><th>Email</th><th id="th-alumno-acciones"></th></tr></thead>
+        <tbody id="tabla-alumnos"></tbody>
+    </table>
+</div>
+
+<!-- MAESTROS -->
+<div id="maestros-section" class="section">
+    <div id="maestros-alert" class="alert"></div>
+    <div id="form-maestro-card" class="card" style="display:none">
+        <h3 id="form-maestro-title">Nuevo Maestro</h3>
+        <div class="form-row">
+            <div class="form-group"><label>Nombre</label><input type="text" id="maestro-nombre"></div>
+            <div class="form-group"><label>Apellido</label><input type="text" id="maestro-apellido"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>Email</label><input type="email" id="maestro-email"></div>
+            <div class="form-group"><label>Especialidad</label><input type="text" id="maestro-especialidad"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn btn-success" onclick="guardarMaestro()">Guardar</button>
+            <button class="btn" style="background:#ddd" onclick="cancelarMaestro()">Cancelar</button>
+        </div>
+    </div>
+    <div class="section-header">
+        <h2>Maestros</h2>
+        <button id="btn-nuevo-maestro" class="btn btn-success" onclick="mostrarFormMaestro()">+ Nuevo</button>
+    </div>
+    <table>
+        <thead><tr><th>ID</th><th>Nombre</th><th>Apellido</th><th>Email</th><th>Especialidad</th><th id="th-maestro-acciones"></th></tr></thead>
+        <tbody id="tabla-maestros"></tbody>
+    </table>
+</div>
+
+<!-- MATERIAS -->
+<div id="materias-section" class="section">
+    <div id="materias-alert" class="alert"></div>
+    <div id="form-materia-card" class="card" style="display:none">
+        <h3 id="form-materia-title">Nueva Materia</h3>
+        <div class="form-row">
+            <div class="form-group"><label>Nombre</label><input type="text" id="materia-nombre"></div>
+            <div class="form-group"><label>Créditos</label><input type="number" id="materia-creditos"></div>
+        </div>
+        <div class="form-group"><label>Descripción</label><input type="text" id="materia-descripcion"></div>
+        <div class="form-group">
+            <label>Maestro</label>
+            <select id="materia-maestro"><option value="">Sin maestro asignado</option></select>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn btn-success" onclick="guardarMateria()">Guardar</button>
+            <button class="btn" style="background:#ddd" onclick="cancelarMateria()">Cancelar</button>
+        </div>
+    </div>
+    <div class="section-header">
+        <h2>Materias</h2>
+        <button id="btn-nuevo-materia" class="btn btn-success" onclick="mostrarFormMateria()">+ Nuevo</button>
+    </div>
+    <table>
+        <thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Créditos</th><th>Maestro</th><th id="th-materia-acciones"></th></tr></thead>
+        <tbody id="tabla-materias"></tbody>
+    </table>
+</div>
+
+<!-- CALIFICACIONES -->
+<div id="calificaciones-section" class="section">
+    <div id="calificaciones-alert" class="alert"></div>
+    <div id="form-calificacion-card" class="card" style="display:none">
+        <h3>Nueva Calificación</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Alumno</label>
+                <select id="cal-alumno"></select>
+            </div>
+            <div class="form-group">
+                <label>Materia</label>
+                <select id="cal-materia"></select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>Calificación</label><input type="number" id="cal-calificacion" min="0" max="10" step="0.1"></div>
+            <div class="form-group"><label>Periodo</label><input type="text" id="cal-periodo" placeholder="2024-1"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn btn-success" onclick="guardarCalificacion()">Guardar</button>
+            <button class="btn" style="background:#ddd" onclick="cancelarCalificacion()">Cancelar</button>
+        </div>
+    </div>
+    <div class="section-header">
+        <h2>Calificaciones</h2>
+        <button id="btn-nuevo-cal" class="btn btn-success" onclick="mostrarFormCalificacion()">+ Nuevo</button>
+    </div>
+    <table>
+        <thead><tr><th>ID</th><th>Alumno</th><th>Materia</th><th>Calificación</th><th>Periodo</th><th id="th-cal-acciones"></th></tr></thead>
+        <tbody id="tabla-calificaciones"></tbody>
+    </table>
+</div>
+
+<script>
+    const API = 'http://localhost:8080';
+    let token = localStorage.getItem('token');
+    let rol = localStorage.getItem('rol');
+    let editandoId = { alumno: null, maestro: null, materia: null };
+
+    // ===================== AUTH =====================
+    async function login() {
+        const username = document.getElementById('login-username').value;
+        const password = document.getElementById('login-password').value;
+        try {
+            const res = await fetch(`${API}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            if (!res.ok) { showAlert('login-alert', 'error', 'Usuario o contraseña incorrectos'); return; }
+            const data = await res.json();
+            token = data.token;
+            rol = data.rol;
+            localStorage.setItem('token', token);
+            localStorage.setItem('rol', rol);
+            localStorage.setItem('username', data.username);
+            iniciarSesion(data.username, data.rol);
+        } catch(e) { showAlert('login-alert', 'error', 'Error conectando con el servidor'); }
+    }
+
+    function iniciarSesion(username, rolUsuario) {
+    document.getElementById('login-section').classList.remove('active');
+    document.getElementById('tabs').style.display = 'block';
+    document.getElementById('nav-user').innerHTML = `${username} <span class="role-badge">${rolUsuario}</span>`;
+    document.getElementById('btn-logout').style.display = 'block';
+
+    // Primero mostrar todos los botones
+    document.getElementById('btn-nuevo-alumno').style.display = 'block';
+    document.getElementById('btn-nuevo-maestro').style.display = 'block';
+    document.getElementById('btn-nuevo-materia').style.display = 'block';
+    document.getElementById('btn-nuevo-cal').style.display = 'block';
+
+    // Luego ocultar si es usuario normal
+    if (rolUsuario !== 'ROLE_ADMIN') {
+        document.getElementById('btn-nuevo-alumno').style.display = 'none';
+        document.getElementById('btn-nuevo-maestro').style.display = 'none';
+        document.getElementById('btn-nuevo-materia').style.display = 'none';
+        document.getElementById('btn-nuevo-cal').style.display = 'none';
+    }
+
+    showTab('alumnos');
+}
+
+    function logout() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('rol');
+        token = null; rol = null;
+        document.getElementById('tabs').style.display = 'none';
+        document.getElementById('btn-logout').style.display = 'none';
+        document.getElementById('nav-user').innerHTML = '';
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById('login-section').classList.add('active');
+    }
+
+    // ===================== TABS =====================
+    function showTab(tab) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('#tabs button').forEach(b => b.classList.remove('active'));
+        document.getElementById(`${tab}-section`).classList.add('active');
+        document.querySelectorAll('#tabs button').forEach(b => { if(b.textContent.toLowerCase().includes(tab.slice(0,4))) b.classList.add('active'); });
+        if(tab === 'alumnos') cargarAlumnos();
+        if(tab === 'maestros') cargarMaestros();
+        if(tab === 'materias') cargarMaterias();
+        if(tab === 'calificaciones') cargarCalificaciones();
+    }
+
+    // ===================== HELPERS =====================
+    function headers() { return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }; }
+
+    function showAlert(id, type, msg) {
+        const el = document.getElementById(id);
+        el.className = `alert alert-${type}`;
+        el.textContent = msg;
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 3000);
+    }
+
+    // ===================== ALUMNOS =====================
+    async function cargarAlumnos() {
+        const res = await fetch(`${API}/api/alumnos`, { headers: headers() });
+        const data = await res.json();
+        const tbody = document.getElementById('tabla-alumnos');
+        const esAdmin = rol === 'ROLE_ADMIN';
+        document.getElementById('th-alumno-acciones').textContent = esAdmin ? 'Acciones' : '';
+        tbody.innerHTML = data.map(a => `
+            <tr>
+                <td>${a.id}</td><td>${a.nombre}</td><td>${a.apellido}</td>
+                <td>${a.matricula}</td><td>${a.email}</td>
+                <td>${esAdmin ? `<div class="actions">
+                    <button class="btn btn-warning" onclick="editarAlumno(${a.id},'${a.nombre}','${a.apellido}','${a.matricula}','${a.email}')">Editar</button>
+                    <button class="btn btn-danger" onclick="eliminarAlumno(${a.id})">Eliminar</button>
+                </div>` : ''}</td>
+            </tr>`).join('');
+    }
+
+    function mostrarFormAlumno() {
+        editandoId.alumno = null;
+        document.getElementById('form-alumno-title').textContent = 'Nuevo Alumno';
+        ['alumno-nombre','alumno-apellido','alumno-matricula','alumno-email'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('form-alumno-card').style.display = 'block';
+    }
+
+    function editarAlumno(id, nombre, apellido, matricula, email) {
+        editandoId.alumno = id;
+        document.getElementById('form-alumno-title').textContent = 'Editar Alumno';
+        document.getElementById('alumno-nombre').value = nombre;
+        document.getElementById('alumno-apellido').value = apellido;
+        document.getElementById('alumno-matricula').value = matricula;
+        document.getElementById('alumno-email').value = email;
+        document.getElementById('form-alumno-card').style.display = 'block';
+    }
+
+    function cancelarAlumno() { document.getElementById('form-alumno-card').style.display = 'none'; }
+
+    async function guardarAlumno() {
+        const alumno = {
+            nombre: document.getElementById('alumno-nombre').value,
+            apellido: document.getElementById('alumno-apellido').value,
+            matricula: document.getElementById('alumno-matricula').value,
+            email: document.getElementById('alumno-email').value
+        };
+        const url = editandoId.alumno ? `${API}/api/alumnos/${editandoId.alumno}` : `${API}/api/alumnos`;
+        const method = editandoId.alumno ? 'PUT' : 'POST';
+        const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(alumno) });
+        if (res.ok) { cancelarAlumno(); cargarAlumnos(); showAlert('alumnos-alert', 'success', 'Alumno guardado correctamente'); }
+        else showAlert('alumnos-alert', 'error', 'Error al guardar alumno');
+    }
+
+    async function eliminarAlumno(id) {
+        if (!confirm('¿Eliminar este alumno?')) return;
+        const res = await fetch(`${API}/api/alumnos/${id}`, { method: 'DELETE', headers: headers() });
+        if (res.ok) { cargarAlumnos(); showAlert('alumnos-alert', 'success', 'Alumno eliminado'); }
+    }
+
+    // ===================== MAESTROS =====================
+    async function cargarMaestros() {
+        const res = await fetch(`${API}/api/maestros`, { headers: headers() });
+        const data = await res.json();
+        const tbody = document.getElementById('tabla-maestros');
+        const esAdmin = rol === 'ROLE_ADMIN';
+        document.getElementById('th-maestro-acciones').textContent = esAdmin ? 'Acciones' : '';
+        tbody.innerHTML = data.map(m => `
+            <tr>
+                <td>${m.id}</td><td>${m.nombre}</td><td>${m.apellido}</td>
+                <td>${m.email}</td><td>${m.especialidad}</td>
+                <td>${esAdmin ? `<div class="actions">
+                    <button class="btn btn-warning" onclick="editarMaestro(${m.id},'${m.nombre}','${m.apellido}','${m.email}','${m.especialidad}')">Editar</button>
+                    <button class="btn btn-danger" onclick="eliminarMaestro(${m.id})">Eliminar</button>
+                </div>` : ''}</td>
+            </tr>`).join('');
+    }
+
+    function mostrarFormMaestro() {
+        editandoId.maestro = null;
+        document.getElementById('form-maestro-title').textContent = 'Nuevo Maestro';
+        ['maestro-nombre','maestro-apellido','maestro-email','maestro-especialidad'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('form-maestro-card').style.display = 'block';
+    }
+
+    function editarMaestro(id, nombre, apellido, email, especialidad) {
+        editandoId.maestro = id;
+        document.getElementById('form-maestro-title').textContent = 'Editar Maestro';
+        document.getElementById('maestro-nombre').value = nombre;
+        document.getElementById('maestro-apellido').value = apellido;
+        document.getElementById('maestro-email').value = email;
+        document.getElementById('maestro-especialidad').value = especialidad;
+        document.getElementById('form-maestro-card').style.display = 'block';
+    }
+
+    function cancelarMaestro() { document.getElementById('form-maestro-card').style.display = 'none'; }
+
+    async function guardarMaestro() {
+        const maestro = {
+            nombre: document.getElementById('maestro-nombre').value,
+            apellido: document.getElementById('maestro-apellido').value,
+            email: document.getElementById('maestro-email').value,
+            especialidad: document.getElementById('maestro-especialidad').value
+        };
+        const url = editandoId.maestro ? `${API}/api/maestros/${editandoId.maestro}` : `${API}/api/maestros`;
+        const method = editandoId.maestro ? 'PUT' : 'POST';
+        const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(maestro) });
+        if (res.ok) { cancelarMaestro(); cargarMaestros(); showAlert('maestros-alert', 'success', 'Maestro guardado correctamente'); }
+        else showAlert('maestros-alert', 'error', 'Error al guardar maestro');
+    }
+
+    async function eliminarMaestro(id) {
+        if (!confirm('¿Eliminar este maestro?')) return;
+        const res = await fetch(`${API}/api/maestros/${id}`, { method: 'DELETE', headers: headers() });
+        if (res.ok) { cargarMaestros(); showAlert('maestros-alert', 'success', 'Maestro eliminado'); }
+    }
+
+    // ===================== MATERIAS =====================
+    async function cargarMaestrosSelect() {
+        const res = await fetch(`${API}/api/maestros`, { headers: headers() });
+        const data = await res.json();
+        const sel = document.getElementById('materia-maestro');
+        sel.innerHTML = '<option value="">Sin maestro asignado</option>' +
+            data.map(m => `<option value="${m.id}">${m.nombre} ${m.apellido}</option>`).join('');
+    }
+
+    async function cargarMaterias() {
+        const res = await fetch(`${API}/api/materias`, { headers: headers() });
+        const data = await res.json();
+        const tbody = document.getElementById('tabla-materias');
+        const esAdmin = rol === 'ROLE_ADMIN';
+        document.getElementById('th-materia-acciones').textContent = esAdmin ? 'Acciones' : '';
+        tbody.innerHTML = data.map(m => `
+            <tr>
+                <td>${m.id}</td><td>${m.nombre}</td><td>${m.descripcion}</td>
+                <td>${m.creditos}</td><td>${m.maestro ? m.maestro.nombre+' '+m.maestro.apellido : '-'}</td>
+                <td>${esAdmin ? `<div class="actions">
+                    <button class="btn btn-warning" onclick="editarMateria(${m.id},'${m.nombre}','${m.descripcion}',${m.creditos},${m.maestro ? m.maestro.id : null})">Editar</button>
+                    <button class="btn btn-danger" onclick="eliminarMateria(${m.id})">Eliminar</button>
+                </div>` : ''}</td>
+            </tr>`).join('');
+    }
+
+    async function mostrarFormMateria() {
+        editandoId.materia = null;
+        document.getElementById('form-materia-title').textContent = 'Nueva Materia';
+        ['materia-nombre','materia-descripcion','materia-creditos'].forEach(id => document.getElementById(id).value = '');
+        await cargarMaestrosSelect();
+        document.getElementById('form-materia-card').style.display = 'block';
+    }
+
+    async function editarMateria(id, nombre, descripcion, creditos, maestroId) {
+        editandoId.materia = id;
+        document.getElementById('form-materia-title').textContent = 'Editar Materia';
+        document.getElementById('materia-nombre').value = nombre;
+        document.getElementById('materia-descripcion').value = descripcion;
+        document.getElementById('materia-creditos').value = creditos;
+        await cargarMaestrosSelect();
+        if (maestroId) document.getElementById('materia-maestro').value = maestroId;
+        document.getElementById('form-materia-card').style.display = 'block';
+    }
+
+    function cancelarMateria() { document.getElementById('form-materia-card').style.display = 'none'; }
+
+    async function guardarMateria() {
+        const maestroId = document.getElementById('materia-maestro').value;
+        const materia = {
+            nombre: document.getElementById('materia-nombre').value,
+            descripcion: document.getElementById('materia-descripcion').value,
+            creditos: parseInt(document.getElementById('materia-creditos').value),
+            maestro: maestroId ? { id: parseInt(maestroId) } : null
+        };
+        const url = editandoId.materia ? `${API}/api/materias/${editandoId.materia}` : `${API}/api/materias`;
+        const method = editandoId.materia ? 'PUT' : 'POST';
+        const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(materia) });
+        if (res.ok) { cancelarMateria(); cargarMaterias(); showAlert('materias-alert', 'success', 'Materia guardada correctamente'); }
+        else showAlert('materias-alert', 'error', 'Error al guardar materia');
+    }
+
+    async function eliminarMateria(id) {
+        if (!confirm('¿Eliminar esta materia?')) return;
+        const res = await fetch(`${API}/api/materias/${id}`, { method: 'DELETE', headers: headers() });
+        if (res.ok) { cargarMaterias(); showAlert('materias-alert', 'success', 'Materia eliminada'); }
+    }
+
+    // ===================== CALIFICACIONES =====================
+    async function cargarSelectsCalificacion() {
+        const [resA, resM] = await Promise.all([
+            fetch(`${API}/api/alumnos`, { headers: headers() }),
+            fetch(`${API}/api/materias`, { headers: headers() })
+        ]);
+        const alumnos = await resA.json();
+        const materias = await resM.json();
+        document.getElementById('cal-alumno').innerHTML = alumnos.map(a => `<option value="${a.id}">${a.nombre} ${a.apellido}</option>`).join('');
+        document.getElementById('cal-materia').innerHTML = materias.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('');
+    }
+
+    async function cargarCalificaciones() {
+        const res = await fetch(`${API}/api/calificaciones`, { headers: headers() });
+        const data = await res.json();
+        const tbody = document.getElementById('tabla-calificaciones');
+        const esAdmin = rol === 'ROLE_ADMIN';
+        document.getElementById('th-cal-acciones').textContent = esAdmin ? 'Acciones' : '';
+        tbody.innerHTML = data.map(c => `
+            <tr>
+                <td>${c.id}</td>
+                <td>${c.alumno ? c.alumno.nombre+' '+c.alumno.apellido : '-'}</td>
+                <td>${c.materia ? c.materia.nombre : '-'}</td>
+                <td>${c.calificacion}</td><td>${c.periodo}</td>
+                <td>${esAdmin ? `<div class="actions">
+                    <button class="btn btn-danger" onclick="eliminarCalificacion(${c.id})">Eliminar</button>
+                </div>` : ''}</td>
+            </tr>`).join('');
+    }
+
+    async function mostrarFormCalificacion() {
+        await cargarSelectsCalificacion();
+        document.getElementById('cal-calificacion').value = '';
+        document.getElementById('cal-periodo').value = '';
+        document.getElementById('form-calificacion-card').style.display = 'block';
+    }
+
+    function cancelarCalificacion() { document.getElementById('form-calificacion-card').style.display = 'none'; }
+
+    async function guardarCalificacion() {
+        const calificacion = {
+            alumno: { id: parseInt(document.getElementById('cal-alumno').value) },
+            materia: { id: parseInt(document.getElementById('cal-materia').value) },
+            calificacion: parseFloat(document.getElementById('cal-calificacion').value),
+            periodo: document.getElementById('cal-periodo').value
+        };
+        const res = await fetch(`${API}/api/calificaciones`, { method: 'POST', headers: headers(), body: JSON.stringify(calificacion) });
+        if (res.ok) { cancelarCalificacion(); cargarCalificaciones(); showAlert('calificaciones-alert', 'success', 'Calificación guardada'); }
+        else showAlert('calificaciones-alert', 'error', 'Error al guardar calificación');
+    }
+
+    async function eliminarCalificacion(id) {
+        if (!confirm('¿Eliminar esta calificación?')) return;
+        const res = await fetch(`${API}/api/calificaciones/${id}`, { method: 'DELETE', headers: headers() });
+        if (res.ok) { cargarCalificaciones(); showAlert('calificaciones-alert', 'success', 'Calificación eliminada'); }
+    }
+
+    // ===================== INIT =====================
+    async function verificarSesion() {
+    if (!token || !rol) return;
+    try {
+        const res = await fetch(`${API}/api/alumnos`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+            const username = localStorage.getItem('username') || 'Usuario';
+            iniciarSesion(username, rol);
+        } else {
+            localStorage.removeItem('token');
+            localStorage.removeItem('rol');
+            localStorage.removeItem('username');
+        }
+    } catch(e) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('rol');
+        localStorage.removeItem('username');
+    }
+}
+verificarSesion();
+</script>
+</body>
+</html>
+
+
